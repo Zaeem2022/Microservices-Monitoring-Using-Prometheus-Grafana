@@ -1,0 +1,805 @@
+groups:
+- name: ./rules.conf
+  rules:
+    
+  - alert: disk-usage-on-the-pod-critical
+    annotations:
+      alarmid: "12"
+      alertcategory: Application
+      alertdescription: Out of disk space {{ $labels.instance }} pv {{ $labels.persistentvolumeclaim
+        }} utilization > 70% Current value is {{ $value }}
+      alertseverity: Critical
+      alerttitle: Disk usage on pod
+      escalationlevel: Level-1
+      servicename: '{{ $labels.instance }} PV {{ $labels.persistentvolumeclaim }} '
+      summary: '"Out of disk space {{ $labels.instance }} utilization > 70%"'
+    expr: 100 - (kubelet_volume_stats_available_bytes{namespace='ers'} /
+      kubelet_volume_stats_capacity_bytes{namespace='ers'} * 100) > 70
+    for: 2m
+    labels:
+      severity: Critical
+
+  - alert: mysql-db-cluster
+    annotations:
+      alarmid: "18"
+      alertcategory: Database
+      alertdescription: DB cluster is not synced on {{ $labels.instance }}
+      alertseverity: Critical
+      alerttitle: DB Cluster Status
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: mysql_db_cluster == 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: AllReplicasInTheDeployment
+    annotations:
+      alarmid: "2"
+      alertcategory: Application
+      alertdescription: Replicasets in {{ $labels.deployment }} replicas desired count
+        is not equal to current count (instance {{ $labels.instance }})
+      alertseverity: Critical
+      alerttitle: All Replicas in the deployment
+      escalationlevel: Level-1
+      servicename: ' {{ $labels.deployment }} '
+    expr: kube_deployment_spec_replicas{namespace="ers"} != kube_deployment_status_replicas_available{namespace="ers"}
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: deployment-uptime-warning
+    annotations:
+      alarmid: "9"
+      alertcategory: Application
+      alertdescription: |-
+        uptime (< 300 seconds)
+        Value = {{ $value }}
+        Labels = {{ $labels }}
+      alertseverity: Warning
+      alerttitle: Deployment Uptime
+      escalationlevel: Level-1
+      servicename: '{{ $labels.pod }}'
+    expr: envoy_server_uptime < 300
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Warning
+
+  - alert: deployment-uptime-critical
+    annotations:
+      alarmid: "10"
+      alertcategory: Application
+      alertseverity: Critical
+      alerttitle: Deployment Uptime
+      description: |-
+        uptime (< 1000 seconds)
+        Value = {{ $value }}
+        Labels = {{ $labels }}
+      escalationlevel: Level-1
+      servicename: '{{ $labels.pod }}'
+    expr: envoy_server_uptime < 1000
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: disk-usage-on-the-deployment-warning
+    annotations:
+      alarmid: "11"
+      alertcategory: Application
+      alertdescription: '"Out of disk space {{ $labels.instance }} utilization > 80%"'
+      alertseverity: Warning
+      alerttitle: Disk usage on deployment
+      escalationlevel: Level-1
+      servicename: '{{ $labels.instance }}'
+      summary: Out of disk space {{ $labels.instance }} utilization > 80% Current
+        value is {{ $value }}
+    expr: (1-(sum(container_fs_inodes_free{name!="",namespace="ers"}) BY
+      (instance,name,pod,namespace) / sum(container_fs_inodes_total) BY (instance,name,pod,namespace)))
+      * 100 == 80
+    for: 2m
+    labels:
+      severity: Warning
+
+  - alert: disk-usage-on-the-deployment-critical
+    annotations:
+      alarmid: "12"
+      alertcategory: Application
+      alertdescription: Out of disk space {{ $labels.instance }} utilization > 90%
+        Current value is {{ $value }}
+      alertseverity: Critical
+      alerttitle: Disk usage on deployment
+      escalationlevel: Level-1
+      servicename: '{{ $labels.instance }}'
+      summary: '"Out of disk space {{ $labels.instance }} utilization > 90%"'
+    expr: (1-(sum(container_fs_inodes_free{name!="",namespace="ers"}) BY
+      (instance,name,pod,namespace) / sum(container_fs_inodes_total) BY (instance,name,pod,namespace)))
+      * 100 == 90
+    for: 2m
+    labels:
+      severity: Critical
+
+  - alert: all-pods-ok-in-namespace
+    annotations:
+      alarmid: "1"
+      alertcategory: Application
+      alertdescription: '"Pod {{ $labels.pod }} is not in running state"'
+      alertseverity: Critical
+      alerttitle: Pod status
+      escalationlevel: Level-1
+      servicename: ' {{ $labels.service }} '
+    expr: up == 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: mysql-db-connections-warning
+    annotations:
+      alarmid: "21"
+      alertcategory: Database
+      alertdescription: DB connections are > 1000 {{ $labels.instance }}
+      alertseverity: Warning
+      alerttitle: DB Connections
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: mysql_db_connection >= 1000
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Warning
+
+  - alert: mysql-db-connections-critical
+    annotations:
+      alarmid: "20"
+      alertcategory: Database
+      alertdescription: DB connections are > 2000 {{ $labels.instance }}
+      alertseverity: Critical
+      alerttitle: DB Connections
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: mysql_db_connection >= 2000
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: check-host
+    annotations:
+      alarmid: "36"
+      alertcategory: Hardware
+      alertdescription: Host {{ $labels.instance }} is not in running state
+      alertseverity: Critical
+      alerttitle: Check Host
+      escalationlevel: Level-1
+      servicename: ' {{ $labels.instance }} '
+    expr: up == 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: check-network
+    annotations:
+      alarmid: "5"
+      alertcategory: Network
+      alertdescription: Network on device {{ $labels.device }} Instance {{ $labels.instance
+        }} is down
+      alertseverity: Critical
+      alerttitle: Check Network
+      escalationlevel: Level-1
+      servicename: ' {{ $labels.device }} '
+    expr: node_network_up{device="eth0"}==0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: host-queue
+    annotations:
+      alarmid: "16"
+      alertcategory: Network
+      alertdescription: Host Queue {{ $labels.service }} has breached the threshold
+      alertseverity: Critical
+      alerttitle: Check Host Queue
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: host_queue == 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: host-port
+    annotations:
+      alarmid: "14"
+      alertcategory: Network
+      alertdescription: Host port {{ $labels.service }} is not in running state
+      alertseverity: Critical
+      alerttitle: Check Host Port
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: host_port == 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: check-deployment
+    annotations:
+      alarmid: "3"
+      alertcategory: Application
+      alertdescription: '"Deployment {{ $labels.deployed }} is not in deployed state
+        current status is {{ $value }}"'
+      alertseverity: Critical
+      alerttitle: Check Deployment
+      escalationlevel: Level-1
+      servicename: ' {{ $labels.deployment }} '
+      summary: '"Deployment is not in deployed state  {{ $labels.deployment }}"'
+    expr: kube_deployment_status_condition{namespace="ers",status="true"}
+      < 1
+    for: 2m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: host-process
+    annotations:
+      alarmid: "15"
+      alertcategory: Application
+      alertdescription: Host process {{ $labels.service }} is not in running state
+      alertseverity: Critical
+      alerttitle: Check Host Process
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: host_process == 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: outboundservice
+    annotations:
+      alarmid: "57"
+      alertcategory: Outbound Service
+      alertdescription: '{{ $labels.description }} for instance {{ $labels.instance
+        }}'
+      alertseverity: Critical
+      alerttitle: Outbound Service Status
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: outbound_service == 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: tdr-script-count-mismatch
+    annotations:
+      alarmid: "48"
+      alertcategory: TDR
+      alertdescription: ' {{ $labels.description }}'
+      alertseverity: Critical
+      alerttitle: TDR Script Count Mismatch
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: tdr_script > 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: mysql-db-ddl-command
+    annotations:
+      alarmid: "22"
+      alertcategory: Database
+      alertdescription: DDL query has been executed on DB  {{ $labels.instance }}
+      alertseverity: Critical
+      alerttitle: DB DDL Commands
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: mysql_db_ddl_commands > 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: mysql-db-longqueries-warning
+    annotations:
+      alarmid: "24"
+      alertcategory: Database
+      alertdescription: Long queries running on DB for > 100sec {{ $labels.instance
+        }}
+      alertseverity: Warning
+      alerttitle: DB long query
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: mysql_db_longquery > 100
+    for: 0m
+    labels:
+      severity: Warning
+
+  - alert: mysql-db-longqueries-critical
+    annotations:
+      alarmid: "23"
+      alertcategory: Database
+      alertdescription: Long queries running on DB for > 500 sec {{ $labels.instance
+        }}
+      alertseverity: Critical
+      alerttitle: DB long query
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: mysql_db_longquery > 500
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: mysql-db-partition
+    annotations:
+      alarmid: "26"
+      alertcategory: Database
+      alertdescription: DB partition is not updated {{ $labels.instance }}
+      alertseverity: Critical
+      alerttitle: DB partition
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: mysql_db_partition != 1
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: check-all-deployments
+    annotations:
+      alarmid: "33"
+      alertcategory: Application
+      alertdescription: '"Deployment {{ $labels.deployment }} is not in running state"'
+      alertseverity: Critical
+      alerttitle: Check all deployments
+      escalationlevel: Level-1
+      servicename: ' {{ $labels.deployment }} '
+    expr: kube_deployment_status_observed_generation != kube_deployment_metadata_generation
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: pod-memory-usage-warning
+    annotations:
+      alarmid: "32"
+      alertcategory: Application
+      alertdescription: |-
+        Pod memory is filling up (> 80%)
+        Value = {{ $value }}
+        Labels = {{ $labels }}
+      alertseverity: Warning
+      alerttitle: Pod memory usage
+      escalationlevel: Level-1
+      servicename: '{{ $labels.pod }}'
+      summary: Pod {{ $labels.pod }} is out of memory (instance {{ $labels.instance
+        }})
+    expr: (sum(container_memory_working_set_bytes{name!="",namespace="ers"})
+      BY (instance,pod,namespace) / sum(container_spec_memory_limit_bytes
+      > 0) BY (instance,pod,namespace) * 100) > 80
+    for: 2m
+    labels:
+      namespace: ers-monitoring
+      severity: warning
+
+  - alert: pod-memory-usage-critical
+    annotations:
+      alarmid: "31"
+      alertcategory: Application
+      alertdescription: |-
+        Pod memory is filling up (> 90%)
+        Value = {{ $value }}
+        Labels = {{ $labels }}
+      alertseverity: Critical
+      alerttitle: Pod memory usage
+      escalationlevel: Level-1
+      servicename: '{{ $labels.pod }}'
+      summary: Pod {{ $labels.pod }} is out of memory (instance {{ $labels.instance
+        }})
+    expr: (sum(container_memory_working_set_bytes{name!="",namespace="ers"})
+      BY (instance,pod,namespace) / sum(container_spec_memory_limit_bytes
+      > 0) BY (instance,pod,namespace) * 100) > 90
+    for: 2m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: check-cpu-usage-warning
+    annotations:
+      alarmid: "34"
+      alertcategory: Application/Hardware
+      alertdescription: CPU utilization for {{ $labels.instance }} is at warning threshold
+        (> 80%) Value = {{ $value }} Labels = {{ $labels }}
+      alertseverity: Warning
+      alerttitle: Check CPU Usage
+      escalationlevel: Level-1
+      servicename: ' {{ $labels.instance }} '
+    expr: 100 - ((avg by(instance) (rate(node_cpu_seconds_total{mode='idle'}[2m])))
+      * 100) > 80
+    for: 10s
+    labels:
+      namespace: ers-monitoring
+      severity: Warning
+
+  - alert: check-cpu-usage-critical
+    annotations:
+      alarmid: "35"
+      alertcategory: Application/Hardware
+      alertdescription: CPU utilization for {{ $labels.instance }} is at critical
+        threshold (> 90%) Value = {{ $value }} Labels = {{ $labels }}
+      alertseverity: Critical
+      alerttitle: Check CPU Usage
+      escalationlevel: Level-1
+      servicename: ' {{ $labels.instance }} '
+    expr: 100 - ((avg by(instance) (rate(node_cpu_seconds_total{mode='idle'}[2m])))
+      * 100) > 90
+    for: 10s
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: check-memory-usage-warning
+    annotations:
+      alarmid: "4"
+      alertcategory: Application/Hardware
+      alertdescription: Memory utilization for {{ $labels.instance }} is at warning
+        threshold (> 80%) Value = {{ $value }} Labels = {{ $labels }}
+      alertseverity: Critical
+      alerttitle: Check Memory Usage
+      escalationlevel: Level-1
+      servicename: ' {{ $labels.instance }} '
+    expr: ((node_memory_MemTotal_bytes-node_memory_MemFree_bytes)/node_memory_MemTotal_bytes)
+      * 100 > 80
+    for: 10s
+    labels:
+      namespace: ers-monitoring
+      severity: Warning
+
+  - alert: check-memory-usage-critical
+    annotations:
+      alarmid: "38"
+      alertcategory: Application/Hardware
+      alertdescription: Memory utilization for {{ $labels.instance }} is at critical
+        threshold (> 90%) Value = {{ $value }} Labels = {{ $labels }}
+      alertseverity: Critical
+      alerttitle: Check Memory Usage
+      escalationlevel: Level-1
+      servicename: ' {{ $labels.instance }} '
+    expr: ((node_memory_MemTotal_bytes-node_memory_MemFree_bytes)/node_memory_MemTotal_bytes)
+      * 100 > 90
+    for: 10s
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: mysql-db-status
+    annotations:
+      alarmid: "28"
+      alertcategory: Database
+      alertdescription: DB is down on {{ $labels.instance }}
+      alertseverity: Critical
+      alerttitle: DB Status
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: mysql_db_status == 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: check-space-utilization-warning
+    annotations:
+      alarmid: "7"
+      alertcategory: Application/Hardware
+      alertdescription: Mount Point utilization for {{ $labels.mountpoint }} on {{
+        $labels.instance }} is at warning threshold (> 80%) Value = {{ $value }} Labels
+        = {{ $labels }}
+      alertseverity: Warning
+      alerttitle: Check Space Utilization
+      escalationlevel: Level-1
+      servicename: '{{ $labels.instance }} {{ $labels.mountpoint }}'
+    expr: ((node_filesystem_size_bytes-node_filesystem_avail_bytes)/node_filesystem_size_bytes)*100
+      > 80
+    for: 10s
+    labels:
+      namespace: ers-monitoring
+      severity: Warning
+
+  - alert: check-space-utilization-critical
+    annotations:
+      alarmid: "8"
+      alertcategory: Application/Hardware
+      alertdescription: Mount Point utilization for {{ $labels.mountpoint }} on {{
+        $labels.instance }} is at critical threshold (> 90%) Value = {{ $value }}
+        Labels = {{ $labels }}
+      alertseverity: Critical
+      alerttitle: Check Space Utilization
+      escalationlevel: Level-1
+      servicename: '{{ $labels.instance }} {{ $labels.mountpoint }}'
+    expr: ((node_filesystem_size_bytes-node_filesystem_avail_bytes)/node_filesystem_size_bytes)*100
+      > 90
+    for: 10s
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: pod-cpu-usage-warning
+    annotations:
+      alarmid: "29"
+      alertcategory: Application
+      alertdescription: CPU usage on {{ $labels.pod }} is >80% , Value = {{ $value
+        }}, instance = {{ $labels.instance }}
+      alertseverity: Warning
+      alerttitle: Pod cpu usage
+      escalationlevel: Level-1
+      servicename: '{{ $labels.pod }}'
+      summary: Pod {{ $labels.pod }} High CPU usage (instance {{ $labels.instance
+        }})
+    expr: (sum(rate(container_cpu_usage_seconds_total{name!="",namespace="ers"}[3m]))
+      BY (instance,pod,namespace) * 100) > 80
+    for: 2m
+    labels:
+      namespace: ers-monitoring
+      severity: Warning
+
+  - alert: pod-cpu-usage-critical
+    annotations:
+      alarmid: "30"
+      alertcategory: Application
+      alertdescription: CPU usage on {{ $labels.pod }} is >90% , Value = {{ $value
+        }}, instance = {{ $labels.instance }}
+      alertseverity: Critical
+      alerttitle: Pod cpu usage
+      escalationlevel: Level-1
+      servicename: '{{ $labels.pod }}'
+      summary: Pod {{ $labels.pod }} High CPU usage (instance {{ $labels.instance
+        }})
+    expr: (sum(rate(container_cpu_usage_seconds_total{name!="",namespace="ers"}[3m]))
+      BY (instance,pod,namespace) * 100) > 90
+    for: 2m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: mysql-db-cluster-count
+    annotations:
+      alarmid: "19"
+      alertcategory: Database
+      alertdescription: DB cluster count is less than 3 on {{ $labels.instance }}
+      alertseverity: Critical
+      alerttitle: DB Cluster Count
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: mysql_db_cluster_count == 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: URL-Down
+    expr: probe_success{job="blackbox-http"} == 0
+    for: 1m
+    labels:
+     severity: critical
+    annotations:
+     summary: "URL is down"
+     description: "The URL {{ $labels.instance }} is not accessible."
+
+
+  - alert: soa-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: soa-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: soa_error_logs > 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: nginx-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: nginx-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: nginx_error_logs > 0
+    for: 0m
+    labels:
+      namespace: ers-monitoring
+      severity: Critical
+
+  - alert: IS-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: IS-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: is_error_logs > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: dms-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: dms-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: dms_error_logs > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: VFO-Link-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: VFO-Link-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: vfo_error_logs > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: Identity-MS-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: Identity-MS-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: identity_ms_error_logs > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: OMS-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: OMS-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: oms_error_logs > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: accountsystem-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical     
+      alerttitle: accountsystem-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: accountsystem_error_logs > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: access-MS-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: access-MS-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: access_ms_error_logs > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: contract-MS-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: contract-MS-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: contract_ms_error_logs > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: notification-manager-error-logs
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: notification-manager-error-logs
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: notification_manager_error_logs > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: nginx-process-status
+    annotations:
+      alarmid: "26"
+      alertcategory: Link Component
+      alertdescription: Errors observed in {{ $labels.service }}
+      alertseverity: Critical
+      alerttitle: nginx-process-status
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: nginx_process_status > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: mysql-process-status
+    annotations:
+      alarmid: "27"
+      alertcategory: Process Status
+      alertdescription: Process of {{ $labels.service }} is Not Running
+      alertseverity: Critical
+      alerttitle: mysql-process-status
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: mysql_process_status > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical
+
+  - alert: redis-file-update
+    annotations:
+      alarmid: "27"
+      alertcategory: File Status
+      alertdescription: File {{ $labels.service }} is Changed 
+      alertseverity: Critical
+      alerttitle: redis-file-update
+      escalationlevel: Level-1
+      servicename: '{{ $labels.service }}'
+    expr: redis_conf_file_status > 0
+    for: 0m
+    labels:
+      namespace: monitoring
+      severity: Critical

@@ -1,0 +1,1 @@
+kubectl create configmap prometheus-rules --from-file=prometheus.allrules.yml --from-file=node-rules.yml --from-file=kube-rules.yml -n monitoring
